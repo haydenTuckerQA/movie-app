@@ -14,4 +14,14 @@ public class MovieService implements IMovieService {
 		return repo.getAllMovies();
 	}
 
+	@Override
+	public String getMovie(Long id) {
+		return repo.getMovie(id);
+	}
+
+	@Override
+	public String createMovie(String movieAsJSON) {
+		return repo.createMovie(movieAsJSON);
+	}
+
 }

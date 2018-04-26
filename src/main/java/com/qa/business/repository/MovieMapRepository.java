@@ -16,7 +16,7 @@ import com.qa.util.JSONUtil;
 
 @ApplicationScoped
 @Alternative
-@Transactional(SUPPORTS)
+//@Transactional(SUPPORTS)
 public class MovieMapRepository implements IMovieRepository {
 	
 	private Map<Long, Movie> movies;
@@ -56,17 +56,19 @@ public class MovieMapRepository implements IMovieRepository {
 		return "{\"message\":\"movie successfully created\"}";
 	}
 
+	@Transactional(REQUIRED)
 	@Override
 	public String deleteMovie(Long id) {
 		Movie movie = movies.get(id);
 		if (movie != null) {
-			movies.remove(movie);
+			movies.remove(id);
 			return "{\"message\":\"movie successfully deleted\"}";
 		} else {
 			return "{\"message\":\"movie does not exist\"}";
 		}
 	}
 	
+	@Transactional(REQUIRED)
 	@Override
 	public String updateMovie(String movieAsJSON) {
 		Movie updatedMovie = util.getObjectForJSON(movieAsJSON, Movie.class);

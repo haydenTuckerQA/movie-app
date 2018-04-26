@@ -3,45 +3,43 @@ package com.qa.business.repository;
 import static javax.transaction.Transactional.TxType.REQUIRED;
 import static javax.transaction.Transactional.TxType.SUPPORTS;
 
-import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
-import javax.enterprise.inject.Default;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Alternative;
 import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.Query;
 import javax.transaction.Transactional;
-
-import org.apache.log4j.Logger;
 
 import com.qa.persistence.domain.Movie;
 import com.qa.util.JSONUtil;
 
-@Default
+@ApplicationScoped
+@Alternative
 @Transactional(SUPPORTS)
-public class MovieDBRepository implements IMovieRepository {
+public class MovieMapRepository implements IMovieRepository {
 	
-	private static final Logger LOGGER = 
-			Logger.getLogger(MovieDBRepository.class);
+	private Map<Long, Movie> movies;
 	
-	@PersistenceContext(unitName ="primary")
-	private EntityManager manager;
+	private static Long uniqueId;
 	
 	@Inject
-	private JSONUtil util;
+	JSONUtil util;
+	
+	public MovieMapRepository() {
+		this.movies = new HashMap<Long, Movie>();
+		this.movies.put(1L, new Movie("A", "B", "C"));
+		uniqueId = 2L;
+	}
 
 	@Override
 	public String getAllMovies() {
-		LOGGER.info("MovieDBRepository getAllMovies");
-		Query query = manager.createQuery("SELECT m FROM Movie m");
-		Collection<Movie> movies = (Collection<Movie>) query.getResultList();
-		return util.getJSONForObject(movies);
+		return util.getJSONForObject(movies.values());
 	}
 
 	@Override
 	public String getMovie(Long id) {
-		LOGGER.info("MovieDBRepository getMovie");
-		Movie movie = findMovie(id);
+		Movie movie = movies.get(id);
 		if(movie != null) {
 			return util.getJSONForObject(movie);
 		} else {
@@ -49,36 +47,32 @@ public class MovieDBRepository implements IMovieRepository {
 		}
 	}
 
-	private Movie findMovie(Long id) {
-		return manager.find(Movie.class, id);
-	}
-
 	@Transactional(REQUIRED)
 	@Override
 	public String createMovie(String movieAsJSON) {
 		Movie movie = util.getObjectForJSON(movieAsJSON, Movie.class);
-		manager.persist(movie);
+		movies.put(uniqueId, movie);
+		uniqueId++;
 		return "{\"message\":\"movie successfully created\"}";
 	}
 
 	@Override
 	public String deleteMovie(Long id) {
-		Movie movie = findMovie(id);
+		Movie movie = movies.get(id);
 		if (movie != null) {
-			manager.remove(movie);
+			movies.remove(movie);
 			return "{\"message\":\"movie successfully deleted\"}";
 		} else {
 			return "{\"message\":\"movie does not exist\"}";
 		}
 	}
-
-	@Transactional(REQUIRED)
+	
 	@Override
 	public String updateMovie(String movieAsJSON) {
 		Movie updatedMovie = util.getObjectForJSON(movieAsJSON, Movie.class);
-		Movie oldMovie = findMovie(updatedMovie.getId());
+		Movie oldMovie = movies.get(updatedMovie.getId());
 		if (oldMovie != null) {
-			manager.merge(updatedMovie);
+			movies.put(updatedMovie.getId(), updatedMovie);
 			return "{\"message\":\"movie successfully updated\"}";
 		} else {
 			return "{\"message\":\"movie does not exist\"}";
